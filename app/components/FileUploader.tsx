@@ -1,67 +1,73 @@
-import React, { useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { formatSize } from "~/lib/utils";
+import { formatSize } from "../lib/utils";
 
 interface FileUploaderProps {
-  onFileSelected: (file: File | null) => void;
+  onFileSelect?: (file: File | null) => void;
+  file: File | null;
 }
 
-const FileUploader = ({ onFileSelected }: FileUploaderProps) => {
+const FileUploader = ({ onFileSelect, file }: FileUploaderProps) => {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      if (acceptedFiles.length > 0) {
-        onFileSelected(acceptedFiles[0]);
-      }
+      const file = acceptedFiles[0] || null;
+
+      onFileSelect?.(file);
     },
-    [onFileSelected]
+    [onFileSelect]
   );
 
-  const maxsize = 20 * 1024 * 1024;
+  const maxFileSize = 20 * 1024 * 1024; // 20MB in bytes
 
   const { getRootProps, getInputProps, acceptedFiles } = useDropzone({
     onDrop,
     multiple: false,
     accept: { "application/pdf": [".pdf"] },
-    maxSize: maxsize,
+    maxSize: maxFileSize,
   });
 
-  const file = acceptedFiles[0] || null;
-
   return (
-    <div className="gradient-border w-full">
+    <div className="w-full gradient-border">
       <div {...getRootProps()}>
         <input {...getInputProps()} />
+
         <div className="space-y-4 cursor-pointer">
           {file ? (
             <div
               className="uploader-selected-file"
               onClick={(e) => e.stopPropagation()}
             >
-              <img src="/images/pdf.png" alt="pdf" className="size-20" />
+              <img src="/images/pdf.png" alt="pdf" className="size-10" />
               <div className="flex items-center space-x-3">
-                <p className="text-sm font-medium text-gray-700 truncate max-w-sm">
-                  {file.name}
-                </p>
-                <p className="text-sm text-gray-500">{formatSize(file.size)}</p>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 truncate max-w-xs">
+                    {file.name}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {formatSize(file.size)}
+                  </p>
+                </div>
               </div>
               <button
                 className="p-2 cursor-pointer"
-                onClick={() => onFileSelected(null)}
+                onClick={() => {
+                  onFileSelect?.(null);
+                }}
               >
                 <img src="/icons/cross.svg" alt="remove" className="w-4 h-4" />
               </button>
             </div>
           ) : (
             <div>
-              <div className="mx-auto flex w-16 h-16 items-center justify-center mb-2">
+              <div className="mx-auto w-16 h-16 flex items-center justify-center mb-2">
                 <img src="/icons/info.svg" alt="upload" className="size-20" />
               </div>
               <p className="text-lg text-gray-500">
-                <span className="font-semibold">Click to Upload </span> or drag
-                and drop files
+                <span className="font-semibold">Click to upload</span> or drag
+                and drop
               </p>
-              <p className="text-xs text-gray-400">
-                PDF (max {formatSize(maxsize)})
+              <p className="text-lg text-gray-500">
+                PDF (max {formatSize(maxFileSize)})
               </p>
             </div>
           )}
@@ -70,5 +76,4 @@ const FileUploader = ({ onFileSelected }: FileUploaderProps) => {
     </div>
   );
 };
-
 export default FileUploader;
