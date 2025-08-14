@@ -1,90 +1,33 @@
-export interface PdfConversionResult {
-  imageUrl: string;
-  file: File | null;
-  error?: string;
-}
+export async function pdfToImages(pdfFile: File): Promise<string[]> {
+  if (typeof window === "undefined") throw new Error("PDF must run in browser");
 
-let pdfjsLib: any = null;
-let loadPromise: Promise<any> | null = null;
+  const pdfjsLib = await import("pdfjs-dist");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/public/pdf.worker.min.mjs";
 
-async function loadPdfJs(): Promise<any> {
-  if (pdfjsLib) return pdfjsLib;
-  if (loadPromise) return loadPromise;
+  const arrayBuffer = await pdfFile.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-  try {
-    // @ts-expect-error - pdfjs-dist/build/pdf.mjs is not typed
-    loadPromise = import("pdfjs-dist/build/pdf.mjs").then((lib) => {
-      lib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-      pdfjsLib = lib;
-      return lib;
-    });
+  const images: string[] = [];
 
-    return loadPromise;
-  } catch (err) {
-    console.warn("Failed to load pdf.js:", err);
-    return null;
-  }
-}
-
-export async function convertPdfToImage(
-  file: File
-): Promise<PdfConversionResult> {
-  try {
-    const lib = await loadPdfJs();
-    if (!lib) {
-      return { imageUrl: "", file: null, error: "pdf.js not loaded" };
-    }
-
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await lib.getDocument({ data: arrayBuffer }).promise;
-
-    const page = await pdf.getPage(1);
-    const viewport = page.getViewport({ scale: 2 }); // reduce scale for faster conversion
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 2 });
 
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
-
-    if (!context) {
-      return { imageUrl: "", file: null, error: "No 2D canvas context" };
-    }
+    if (!context) throw new Error("Failed to get canvas context");
 
     canvas.width = viewport.width;
     canvas.height = viewport.height;
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "high";
 
-    await page.render({ canvasContext: context, viewport }).promise;
+    await page.render({
+      canvas,
+      canvasContext: context,
+      viewport,
+    }).promise;
 
-    return new Promise((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve({
-              imageUrl: "",
-              file: null,
-              error: "Failed to create image blob",
-            });
-            return;
-          }
-
-          const originalName = file.name.replace(/\.pdf$/i, "");
-          const imageFile = new File([blob], `${originalName}.png`, {
-            type: "image/png",
-          });
-
-          resolve({ imageUrl: URL.createObjectURL(blob), file: imageFile });
-        },
-        "image/png",
-        1.0
-      );
-    });
-  } catch (err: any) {
-    console.warn("PDF to Image conversion failed:", err);
-    // Instead of throwing, return null so your upload continues
-    return {
-      imageUrl: "",
-      file: null,
-      error: `Failed to convert PDF: ${err.message || err}`,
-    };
+    images.push(canvas.toDataURL("image/png"));
   }
+
+  return images;
 }

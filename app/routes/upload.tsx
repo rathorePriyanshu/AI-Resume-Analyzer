@@ -1,130 +1,120 @@
-import { useState, type FormEvent } from "react";
+import { type FormEvent, useState } from "react";
+import Navbar from "~/components/Navbar";
 import FileUploader from "~/components/FileUploader";
-import NavBar from "~/components/Navbar";
-import { AIResponseFormat, prepareInstructions } from "~/constants";
 import { usePuterStore } from "~/lib/puter";
+import { useNavigate } from "react-router";
+import { pdfToImages } from "~/lib/pdf2img";
 import { generateUUID } from "~/lib/utils";
+import { AIResponseFormat, prepareInstructions } from "../constants";
 
 const Upload = () => {
-  const { auth, isLoading, ai, kv, fs } = usePuterStore();
+  const { auth, isLoading, fs, ai, kv } = usePuterStore();
+  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [statustext, setStatusText] = useState("");
+  const [statusText, setStatusText] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
-  const handleFileSelected = (file: File | null) => setFile(file);
+  const handleFileSelect = (file: File | null) => {
+    setFile(file);
+  };
 
   const handleAnalyze = async ({
-    companyname,
-    jobtitle,
-    jobdescription,
+    companyName,
+    jobTitle,
+    jobDescription,
     file,
   }: {
-    companyname: string;
-    jobtitle: string;
-    jobdescription: string;
+    companyName: string;
+    jobTitle: string;
+    jobDescription: string;
     file: File;
   }) => {
     setIsProcessing(true);
 
+    setStatusText("Uploading the file...");
+    const uploadedFile = await fs.upload([file]);
+    if (!uploadedFile) return setStatusText("Error: Failed to upload file");
+
+    setStatusText("Converting to image...");
+    const imageFile = await pdfToImages(file);
+    if (!imageFile)
+      return setStatusText("Error: Failed to convert PDF to image");
+
+    setStatusText("Uploading the image...");
+    const uploadedImage = await fs.upload([file]);
+    if (!uploadedImage) return setStatusText("Error: Failed to upload image");
+
+    setStatusText("Preparing data...");
+    const uuid = generateUUID();
+    const data = {
+      id: uuid,
+      resumePath: uploadedFile.path,
+      imagePath: uploadedImage.path,
+      companyName,
+      jobTitle,
+      jobDescription,
+      feedback: "",
+    };
+    await kv.set(`resume:${uuid}`, JSON.stringify(data));
+
+    setStatusText("Analyzing...");
+
+    const feedback = await ai.feedback(
+      uploadedFile.path,
+      prepareInstructions({
+        jobTitle: jobTitle,
+        jobDescription: jobDescription,
+        AIResponseFormat: AIResponseFormat,
+      })
+    );
+    if (!feedback) return setStatusText("Error: Failed to analyze resume");
+
+    const feedbackText =
+      typeof feedback.message.content === "string"
+        ? feedback.message.content
+        : (feedback.message.content[0]?.text ?? "");
+
+    let parsedFeedback;
     try {
-      // 1️⃣ Upload PDF
-      setStatusText("Uploading the file...");
-      const uploadFile = await fs.upload([file]);
-      console.log("Upload response:", uploadFile);
-      if (!uploadFile?.path) {
-        setStatusText("ERROR: Unable to upload file");
-        return;
-      }
-
-      // 2️⃣ Prepare data
-      setStatusText("Preparing the data...");
-      const uuid = generateUUID();
-      const data = {
-        id: uuid,
-        resumepath: uploadFile.path,
-        imagepath: "", // skip image for now
-        companyname,
-        jobtitle,
-        jobdescription,
-        Feedback: "",
-      };
-      await kv.set(`resume:${uuid}`, JSON.stringify(data));
-
-      // 3️⃣ Call AI feedback safely
-      setStatusText("Analyzing the resume...");
-      let feedback;
-      try {
-        feedback = await ai.feedback(
-          uploadFile.path,
-          prepareInstructions({
-            jobTitle: jobtitle,
-            jobDescription: jobdescription,
-            AIResponseFormat: AIResponseFormat,
-          })
-        );
-        if (!feedback) {
-          setStatusText("ERROR: AI feedback returned nothing");
-          return;
-        }
-      } catch (err) {
-        console.error("AI feedback failed:", err);
-        setStatusText("ERROR: AI analysis failed");
-        return;
-      }
-      let feedbackText: string =
-        typeof feedback.message.content === "string"
-          ? feedback.message.content
-          : (feedback.message.content?.[0]?.text ?? "");
-
-      // Hamesha object me convert karo
-      let feedbackObject: any;
-      try {
-        feedbackObject = JSON.parse(feedbackText); // Agar valid JSON string hai
-      } catch {
-        feedbackObject = { raw: feedbackText }; // fallback object
-      }
-
-      // Assign to your data
-      data.Feedback = feedbackObject;
-
-      // 5️⃣ Save final data
-      await kv.set(`resume:${uuid}`, JSON.stringify(data));
-      setStatusText("Analysis complete!");
-      console.log("Final data:", data);
-    } catch (err) {
-      console.error("Unexpected error:", err);
-      setStatusText("ERROR: Something went wrong");
-    } finally {
-      setIsProcessing(false);
+      parsedFeedback = JSON.parse(feedbackText);
+    } catch {
+      // If not valid JSON, use plain string
+      parsedFeedback = feedbackText;
     }
+
+    data.feedback = parsedFeedback;
+    await kv.set(`resume:${uuid}`, JSON.stringify(data));
+    setStatusText("Analysis complete, redirecting...");
+    console.log(data);
+    navigate(`/resume/${uuid}`);
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!file) {
-      alert("Please upload a resume first");
-      return;
-    }
+    const form = e.currentTarget.closest("form");
+    if (!form) return;
+    const formData = new FormData(form);
 
-    const formData = new FormData(e.currentTarget);
-    handleAnalyze({
-      companyname: formData.get("company-name") as string,
-      jobtitle: formData.get("job-title") as string,
-      jobdescription: formData.get("job-description") as string,
-      file,
-    });
+    const companyName = formData.get("company-name") as string;
+    const jobTitle = formData.get("job-title") as string;
+    const jobDescription = formData.get("job-description") as string;
+
+    if (!file) return;
+
+    handleAnalyze({ companyName, jobTitle, jobDescription, file });
   };
 
   return (
-    <main className="bg-[url('./images/bg-main.svg')] bg-cover">
-      <NavBar />
+    <main className="bg-[url('/images/bg-main.svg')] bg-cover">
+      <Navbar />
+
       <section className="main-section">
         <div className="page-heading py-16">
           <h1>Smart feedback for your dream job</h1>
           {isProcessing ? (
             <>
-              <h2>{statustext}</h2>
-              <img src="/public/images/resume-scan.gif" className="w-full" />
+              <h2>{statusText}</h2>
+              <img src="/images/resume-scan.gif" className="w-full" />
             </>
           ) : (
             <h2>Drop your resume for an ATS score and improvement tips</h2>
@@ -132,43 +122,42 @@ const Upload = () => {
           {!isProcessing && (
             <form
               id="upload-form"
-              className="flex flex-col gap-4"
               onSubmit={handleSubmit}
+              className="flex flex-col gap-4 mt-8"
             >
               <div className="form-div">
                 <label htmlFor="company-name">Company Name</label>
                 <input
-                  id="company-name"
                   type="text"
                   name="company-name"
-                  placeholder="Company Name..."
-                  required
+                  placeholder="Company Name"
+                  id="company-name"
                 />
               </div>
               <div className="form-div">
                 <label htmlFor="job-title">Job Title</label>
                 <input
-                  id="job-title"
                   type="text"
                   name="job-title"
-                  placeholder="Job Title..."
-                  required
+                  placeholder="Job Title"
+                  id="job-title"
                 />
               </div>
               <div className="form-div">
                 <label htmlFor="job-description">Job Description</label>
                 <textarea
-                  id="job-description"
                   rows={5}
                   name="job-description"
-                  placeholder="Job Description..."
-                  required
+                  placeholder="Job Description"
+                  id="job-description"
                 />
               </div>
+
               <div className="form-div">
                 <label htmlFor="uploader">Upload Resume</label>
-                <FileUploader file={file} onFileSelect={handleFileSelected} />
+                <FileUploader onFileSelect={handleFileSelect} file={file} />
               </div>
+
               <button className="primary-button" type="submit">
                 Analyze Resume
               </button>
@@ -179,41 +168,4 @@ const Upload = () => {
     </main>
   );
 };
-
 export default Upload;
-
-// TechSphere Solutions is seeking a passionate Full Stack Developer with expertise in React.js and Node.js to join our product team in Bangalore, India (Hybrid). You will be responsible for designing, developing, and deploying high-quality web applications, collaborating with UI/UX designers, backend engineers, and product managers.
-
-// Responsibilities:
-
-// Develop and maintain responsive, high-performance web applications using React.js and Node.js.
-
-// Build and maintain RESTful APIs and integrate with third-party services.
-
-// Write clean, maintainable, and scalable code following best practices.
-
-// Optimize applications for maximum speed and scalability.
-
-// Implement automated testing and CI/CD pipelines.
-
-// Participate in code reviews and provide constructive feedback.
-
-// Required Skills:
-
-// Bachelor’s degree in Computer Science, Engineering, or a related field.
-
-// 2–4 years of hands-on experience with JavaScript/TypeScript, React.js, and Node.js.
-
-// Proficiency in HTML5, CSS3, and UI frameworks (e.g., Chakra UI, Material-UI).
-
-// Experience with relational (MySQL, PostgreSQL) and NoSQL databases (MongoDB).
-
-// Knowledge of Git, API design, and authentication/security best practices.
-
-// Nice to Have:
-
-// Experience with cloud platforms (AWS, GCP, Azure).
-
-// Familiarity with Docker and Kubernetes.
-
-// Understanding of GraphQL.
