@@ -1,3 +1,11 @@
+import type { ClassValue } from "clsx";
+import clsx from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 /**
  * @param bytes - The size in bytes.
  * @returns A human-readable file size string.
