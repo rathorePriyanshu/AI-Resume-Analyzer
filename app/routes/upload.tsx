@@ -1,14 +1,14 @@
 import { type FormEvent, useState } from "react";
 import Navbar from "~/components/Navbar";
 import FileUploader from "~/components/FileUploader";
-import { usePuterStore } from "~/lib/puter";
+import { useUserStore } from "~/lib/puter";
 import { useNavigate } from "react-router";
 import { dataURLtoFile, pdfToImages } from "~/lib/pdf2img";
 import { generateUUID } from "~/lib/utils";
 import { AIResponseFormat, prepareInstructions } from "../constants";
 
 const Upload = () => {
-  const { auth, isLoading, fs, ai, kv } = usePuterStore();
+  const { auth, isLoading, fs, ai, kv } = useUserStore();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -29,66 +29,96 @@ const Upload = () => {
     jobDescription: string;
     file: File;
   }) => {
-    setIsProcessing(true);
-
-    setStatusText("Uploading the file...");
-    const uploadedFile = await fs.upload([file]);
-    if (!uploadedFile) return setStatusText("Error: Failed to upload file");
-
-    setStatusText("Converting to image...");
-    const images = await pdfToImages(file); // This already gives you File[]
-    const imageFile = images[0]; // ✅ already a PNG File
-
-    if (!imageFile)
-      return setStatusText("Error: Failed to convert PDF to image");
-
-    setStatusText("Uploading the image...");
-    const uploadedImage = await fs.upload([imageFile]);
-    if (!uploadedImage) return setStatusText("Error: Failed to upload image");
-
-    setStatusText("Preparing data...");
-    const uuid = generateUUID();
-    const data = {
-      id: uuid,
-      resumePath: uploadedFile.path,
-      imagePath: uploadedImage.path,
-      companyName,
-      jobTitle,
-      jobDescription,
-      feedback: "",
-    };
-    await kv.set(`resume:${uuid}`, JSON.stringify(data));
-
-    setStatusText("Analyzing...");
-
-    const feedback = await ai.feedback(
-      uploadedFile.path,
-      prepareInstructions({
-        jobTitle: jobTitle,
-        jobDescription: jobDescription,
-        AIResponseFormat: AIResponseFormat,
-      })
-    );
-    if (!feedback) return setStatusText("Error: Failed to analyze resume");
-
-    const feedbackText =
-      typeof feedback.message.content === "string"
-        ? feedback.message.content
-        : (feedback.message.content[0]?.text ?? "");
-
-    let parsedFeedback;
     try {
-      parsedFeedback = JSON.parse(feedbackText);
-    } catch {
-      // If not valid JSON, use plain string
-      parsedFeedback = feedbackText;
-    }
+      setIsProcessing(true);
+      setStatusText("Uploading the PDF...");
 
-    data.feedback = parsedFeedback;
-    await kv.set(`resume:${uuid}`, JSON.stringify(data));
-    setStatusText("Analysis complete, redirecting...");
-    console.log(data);
-    navigate(`/resume/${uuid}`);
+      // 1️⃣ Upload PDF
+      const [pdfData] = await fs.upload([file]);
+      if (!pdfData || !pdfData.Key)
+        return setStatusText("Error: Failed to upload the PDF file");
+      const pdfPath = pdfData.Key;
+      setStatusText("Converting PDF to images...");
+
+      // 2️⃣ Convert PDF to images
+      const images: File[] = await pdfToImages(file);
+      if (!images || images.length === 0)
+        return setStatusText("Error: Failed to convert PDF to images");
+
+      // 3️⃣ Upload images
+      type UploadedFile = { Key: string; [key: string]: any };
+      const uploadedImages: UploadedFile[] = await fs.upload(images);
+      const imagePaths: string[] = uploadedImages.map(
+        (img: UploadedFile) => img.Key
+      );
+      if (imagePaths.length === 0)
+        return setStatusText("Error: Failed to upload images");
+
+      setStatusText("Extracting text from first page...");
+
+      // 4️⃣ OCR first page
+      const extractedText = await ai.img2txt(images[0]);
+      if (!extractedText || extractedText.trim() === "")
+        return setStatusText(
+          "Error: OCR failed. The PDF seems blank or unreadable."
+        );
+
+      // 5️⃣ Save initial data in KV
+      const uuid = generateUUID();
+      const resumeData = {
+        id: uuid,
+        resumePath: pdfPath,
+        imagePaths,
+        companyName,
+        jobTitle,
+        jobDescription,
+        extractedText,
+        feedback: "",
+      };
+      await kv.set(`resume:${uuid}`, JSON.stringify(resumeData));
+
+      setStatusText("Analyzing resume with AI...");
+
+      // 6️⃣ Get AI feedback
+      const feedback = await ai.feedback(
+        extractedText,
+        prepareInstructions({ jobTitle, jobDescription, AIResponseFormat })
+      );
+      if (!feedback) return setStatusText("Error: Failed to analyze resume");
+
+      // 7️⃣ Parse AI feedback
+      let feedbackText = "";
+      if (Array.isArray(feedback.message.content)) {
+        const textItem = feedback.message.content.find(
+          (c) => c.type === "text"
+        );
+        feedbackText = textItem?.text ?? "";
+      } else if (typeof feedback.message.content === "string") {
+        feedbackText = feedback.message.content;
+      }
+
+      let parsedFeedback;
+      try {
+        parsedFeedback = feedbackText ? JSON.parse(feedbackText) : feedbackText;
+      } catch {
+        parsedFeedback = feedbackText;
+      }
+
+      // 8️⃣ Save feedback in KV
+      resumeData.feedback = parsedFeedback;
+      await kv.set(`resume:${uuid}`, JSON.stringify(resumeData));
+
+      setStatusText("Analysis complete, redirecting...");
+      console.log(resumeData);
+
+      // 9️⃣ Navigate to resume page
+      navigate(`/resume/${uuid}`);
+    } catch (err: any) {
+      console.error("handleAnalyze error:", err);
+      setStatusText("Error: " + (err.message || "Something went wrong"));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {

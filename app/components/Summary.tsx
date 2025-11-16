@@ -1,4 +1,3 @@
-import React from "react";
 import ScoreGauge from "./ScoreGauge";
 import Categories from "./Categories";
 

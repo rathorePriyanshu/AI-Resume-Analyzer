@@ -1,10 +1,10 @@
 import { Divide } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { usePuterStore } from "~/lib/puter";
+import { useUserStore } from "~/lib/puter";
 
 const wipe = () => {
-  const { auth, fs, kv, isLoading, error } = usePuterStore();
+  const { auth, fs, kv, isLoading, error } = useUserStore();
   const [Files, setFiles] = useState<FSItem[]>([]);
   const navigate = useNavigate();
 

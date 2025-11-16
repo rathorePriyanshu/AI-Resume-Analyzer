@@ -1,14 +1,14 @@
 import { Link } from "react-router";
 import ScoreTracker from "./ScoreTracker";
 import { useEffect, useState } from "react";
-import { usePuterStore } from "~/lib/puter";
+import { useUserStore } from "~/lib/puter";
 
 const ResumeCard = ({
   resume: { id, companyName, jobTitle, feedback, imagePath },
 }: {
   resume: Resume;
 }) => {
-  const { fs } = usePuterStore();
+  const { fs } = useUserStore();
   const [resumeURL, setResumeURL] = useState("");
 
   useEffect(() => {

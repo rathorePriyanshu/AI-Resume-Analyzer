@@ -3,44 +3,50 @@ import { Link, useNavigate, useParams } from "react-router";
 import ATS from "~/components/ATS";
 import Details from "~/components/Details";
 import Summary from "~/components/Summary";
-import { usePuterStore } from "~/lib/puter";
+import { useUserStore } from "~/lib/puter";
 
 // b95c1c76-2301-496a-8fd5-f686f5e03938
 
 const resume = () => {
-  const { auth, fs, kv, isLoading } = usePuterStore();
+  const { auth, fs, kv, isLoading } = useUserStore();
   const { id } = useParams();
   const [resumeURL, setResumeURL] = useState("");
-  const [imageURL, setImageURl] = useState("");
+  const [imageURL, setImageURL] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !auth.isAuthenticated)
+    if (!isLoading && auth.isAuthenticated === false) {
       navigate(`/auth?next=/resume/${id}`);
-  }, [isLoading]);
+    }
+  }, [isLoading, auth.isAuthenticated]);
 
   useEffect(() => {
     const loadresume = async () => {
-      const resume = await kv.get(`resume:${id}`);
+      const resumeText = await kv.get(`resume:${id}`);
+      if (!resumeText) return;
 
-      if (!resume) return;
+      const resumeData = JSON.parse(resumeText);
 
-      const data = JSON.parse(resume);
-
-      const resumeBlob = await fs.read(data.resumePath);
+      // PDF
+      if (!resumeData.resumePath) return;
+      const resumeBlob = await fs.read(resumeData.resumePath);
       if (!resumeBlob) return;
 
-      const pdfBlob = new Blob([resumeBlob], { type: "application/pdf" });
-      const resumeURL = URL.createObjectURL(pdfBlob);
-      setResumeURL(resumeURL);
+      setResumeURL(
+        URL.createObjectURL(new Blob([resumeBlob], { type: "application/pdf" }))
+      );
 
-      const imageBlob = await fs.read(data.imagePath);
+      // First image
+      if (!resumeData.imagePaths || resumeData.imagePaths.length === 0) return;
+      const imageBlob = await fs.read(resumeData.imagePaths[0]);
       if (!imageBlob) return;
-      const imageURL = URL.createObjectURL(imageBlob);
-      setImageURl(imageURL);
 
-      setFeedback(data.feedback);
+      setImageURL(URL.createObjectURL(imageBlob));
+
+      // Feedback
+      setFeedback(resumeData.feedback);
+
       console.log({ resumeURL, imageURL, feedback });
     };
 
@@ -51,11 +57,7 @@ const resume = () => {
     <main className="!pt-0">
       <nav className="resume-nav">
         <Link to="/" className="back-button">
-          <img
-            src="/public/icons/back.svg"
-            alt="logo"
-            className="w-2.5 h-2.5"
-          />
+          <img src="/icons/back.svg" alt="logo" className="w-2.5 h-2.5" />
           <span className="text-gray-800 font-semibold text-sm">
             Back To Home
           </span>
@@ -87,7 +89,7 @@ const resume = () => {
               <Details feedback={feedback} />
             </div>
           ) : (
-            <img src="/public/images/resume-scan-2.gif" className="w-full" />
+            <img src="/images/resume-scan-2.gif" className="w-full" />
           )}
         </section>
       </div>

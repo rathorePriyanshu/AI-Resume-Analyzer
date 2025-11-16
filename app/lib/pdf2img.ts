@@ -1,8 +1,10 @@
 export async function pdfToImages(pdfFile: File): Promise<File[]> {
-  if (typeof window === "undefined") throw new Error("PDF must run in browser");
+  if (typeof window === "undefined") {
+    throw new Error("PDF must run in browser");
+  }
 
   const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "/public/pdf.worker.min.mjs";
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
   const arrayBuffer = await pdfFile.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -23,12 +25,12 @@ export async function pdfToImages(pdfFile: File): Promise<File[]> {
     await page.render({
       canvasContext: context,
       viewport,
-      canvas, // ✅ add this line
+      canvas,
     }).promise;
 
     const dataUrl = canvas.toDataURL("image/png");
 
-    // Convert base64 to File
+    // Convert base64 → File
     const file = dataURLtoFile(dataUrl, `page-${pageNum}.png`);
     files.push(file);
   }

@@ -2,25 +2,48 @@ import NavBar from "~/components/Navbar";
 import type { Route } from "./+types/home";
 import ResumeCard from "~/components/ResumeCard";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { usePuterStore } from "~/lib/puter";
+import { Link, useLocation, useNavigate } from "react-router";
+import { useUserStore } from "~/lib/puter";
+import { supabase } from "~/lib/supabaseClient";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Resumind" },
+    { title: "ResuMetrics" },
     { name: "description", content: "Smart feedback for your dream job" },
   ];
 }
 
 export default function Home() {
-  const { auth, kv } = usePuterStore();
+  const { auth, kv } = useUserStore();
+  const [loading, setLoading] = useState(true);
   const [resumeLoading, setResumeLoading] = useState(false);
   const [resumes, setResume] = useState<Resume[]>([]);
+  const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!auth.isAuthenticated) navigate("/auth?next=/");
-  }, [auth.isAuthenticated]);
+    const checkUser = async () => {
+      setLoading(true);
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        navigate(`/auth?next=${location.pathname}`, { replace: true });
+        return;
+      }
+      setLoading(false);
+    };
+
+    checkUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!session?.user) {
+          navigate(`/auth?next=${location.pathname}`, { replace: true });
+        }
+      }
+    );
+
+    return () => listener.subscription.unsubscribe();
+  }, [navigate, location.pathname]);
 
   useEffect(() => {
     const loadResume = async () => {
@@ -39,6 +62,18 @@ export default function Home() {
     loadResume();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <img
+          src="/images/resume-scan.gif"
+          alt="scanner"
+          className="w-[200px]"
+        />
+      </div>
+    );
+  }
+
   return (
     <main className="bg-[url('./images/bg-main.svg')] bg-cover">
       <NavBar />
@@ -54,7 +89,7 @@ export default function Home() {
         {resumeLoading && (
           <div className="flex flex-col items-center justify-center">
             <img
-              src="/public/images/resume-scan-2.gif"
+              src="/images/resume-scan-2.gif"
               alt="scanner"
               className="w-[200px]"
             />
