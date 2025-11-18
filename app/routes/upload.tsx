@@ -3,7 +3,7 @@ import Navbar from "~/components/Navbar";
 import FileUploader from "~/components/FileUploader";
 import { useUserStore } from "~/lib/puter";
 import { useNavigate } from "react-router";
-import { dataURLtoFile, pdfToImages } from "~/lib/pdf2img";
+import { pdfToImages } from "~/lib/pdf2img";
 import { generateUUID } from "~/lib/utils";
 import { AIResponseFormat, prepareInstructions } from "../constants";
 
@@ -33,19 +33,19 @@ const Upload = () => {
       setIsProcessing(true);
       setStatusText("Uploading the PDF...");
 
-      // 1️⃣ Upload PDF
+      //  Upload PDF
       const [pdfData] = await fs.upload([file]);
       if (!pdfData || !pdfData.Key)
         return setStatusText("Error: Failed to upload the PDF file");
       const pdfPath = pdfData.Key;
       setStatusText("Converting PDF to images...");
 
-      // 2️⃣ Convert PDF to images
+      //  Convert PDF to images
       const images: File[] = await pdfToImages(file);
       if (!images || images.length === 0)
         return setStatusText("Error: Failed to convert PDF to images");
 
-      // 3️⃣ Upload images
+      //  Upload images
       type UploadedFile = { Key: string; [key: string]: any };
       const uploadedImages: UploadedFile[] = await fs.upload(images);
       const imagePaths: string[] = uploadedImages.map(
@@ -56,14 +56,14 @@ const Upload = () => {
 
       setStatusText("Extracting text from first page...");
 
-      // 4️⃣ OCR first page
+      //  OCR first page
       const extractedText = await ai.img2txt(images[0]);
       if (!extractedText || extractedText.trim() === "")
         return setStatusText(
           "Error: OCR failed. The PDF seems blank or unreadable."
         );
 
-      // 5️⃣ Save initial data in KV
+      //  Save initial data in KV
       const uuid = generateUUID();
       const resumeData = {
         id: uuid,
@@ -79,14 +79,14 @@ const Upload = () => {
 
       setStatusText("Analyzing resume with AI...");
 
-      // 6️⃣ Get AI feedback
+      //  Get AI feedback
       const feedback = await ai.feedback(
         extractedText,
         prepareInstructions({ jobTitle, jobDescription, AIResponseFormat })
       );
       if (!feedback) return setStatusText("Error: Failed to analyze resume");
 
-      // 7️⃣ Parse AI feedback
+      //  Parse AI feedback
       let feedbackText = "";
       if (Array.isArray(feedback.message.content)) {
         const textItem = feedback.message.content.find(
@@ -104,14 +104,14 @@ const Upload = () => {
         parsedFeedback = feedbackText;
       }
 
-      // 8️⃣ Save feedback in KV
+      //  Save feedback in KV
       resumeData.feedback = parsedFeedback;
       await kv.set(`resume:${uuid}`, JSON.stringify(resumeData));
 
       setStatusText("Analysis complete, redirecting...");
       console.log(resumeData);
 
-      // 9️⃣ Navigate to resume page
+      //  Navigate to resume page
       navigate(`/resume/${uuid}`);
     } catch (err: any) {
       console.error("handleAnalyze error:", err);

@@ -16,7 +16,7 @@ interface FSItem {
 interface AuthUser {
   id: string;
   username?: string;
-  email: string | undefined;
+  email?: string | undefined;
 }
 
 interface KVItem {

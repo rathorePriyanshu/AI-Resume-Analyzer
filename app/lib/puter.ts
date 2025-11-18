@@ -130,25 +130,13 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
     set({ isLoading: true, error: null });
 
     try {
-      const { data, error } = await supabase.auth.getUser();
+      const { data: sessionData, error } = await supabase.auth.getSession();
       if (error) throw error;
 
-      if (data.user) {
-        const user = { id: data.user.id, email: data.user.email };
-        set({
-          auth: {
-            user,
-            isAuthenticated: true,
-            signIn: get().auth.signIn,
-            signOut: get().auth.signOut,
-            refreshUser: get().auth.refreshUser,
-            checkAuthStatus: get().auth.checkAuthStatus,
-            getUser: () => user,
-          },
-          isLoading: false,
-        });
-        return true;
-      } else {
+      const session = sessionData.session;
+
+      // ❌ user is not logged in
+      if (!session) {
         set({
           auth: {
             user: null,
@@ -163,10 +151,39 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
         });
         return false;
       }
+
+      // ✅ user is logged in
+      const user = session.user;
+      set({
+        auth: {
+          user: { id: user.id, email: user.email },
+          isAuthenticated: true,
+          signIn: get().auth.signIn,
+          signOut: get().auth.signOut,
+          refreshUser: get().auth.refreshUser,
+          checkAuthStatus: get().auth.checkAuthStatus,
+          getUser: () => user,
+        },
+        isLoading: false,
+      });
+
+      return true;
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Failed to check auth status";
-      setError(msg);
+      set({
+        error: msg,
+        auth: {
+          user: null,
+          isAuthenticated: false,
+          signIn: get().auth.signIn,
+          signOut: get().auth.signOut,
+          refreshUser: get().auth.refreshUser,
+          checkAuthStatus: get().auth.checkAuthStatus,
+          getUser: () => null,
+        },
+        isLoading: false,
+      });
       return false;
     }
   };
@@ -292,8 +309,12 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
 
   const readFile = async (path: string) => {
     const { data, error } = await supabase.storage.from(BUCKET).download(path);
-    if (error) throw error;
-    if (!data) throw new Error(`File not found in storage: ${path}`);
+    if (error) {
+      throw error;
+    }
+    if (!data) {
+      throw new Error(`File not found in storage: ${path}`);
+    }
     return data;
   };
 

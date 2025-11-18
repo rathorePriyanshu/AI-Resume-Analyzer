@@ -1,25 +1,16 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import ATS from "~/components/ATS";
 import Details from "~/components/Details";
 import Summary from "~/components/Summary";
 import { useUserStore } from "~/lib/puter";
 
-// b95c1c76-2301-496a-8fd5-f686f5e03938
-
 const resume = () => {
-  const { auth, fs, kv, isLoading } = useUserStore();
+  const { fs, kv } = useUserStore();
   const { id } = useParams();
   const [resumeURL, setResumeURL] = useState("");
   const [imageURL, setImageURL] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isLoading && auth.isAuthenticated === false) {
-      navigate(`/auth?next=/resume/${id}`);
-    }
-  }, [isLoading, auth.isAuthenticated]);
 
   useEffect(() => {
     const loadresume = async () => {

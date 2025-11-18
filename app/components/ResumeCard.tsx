@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { useUserStore } from "~/lib/puter";
 
 const ResumeCard = ({
-  resume: { id, companyName, jobTitle, feedback, imagePath },
+  resume: { id, companyName, jobTitle, feedback, imagePaths },
 }: {
   resume: Resume;
 }) => {
   const { fs } = useUserStore();
   const [resumeURL, setResumeURL] = useState("");
+  const imagePath = imagePaths?.[0];
 
   useEffect(() => {
     const loadResume = async () => {
@@ -17,6 +18,7 @@ const ResumeCard = ({
       if (!blob) return;
 
       const url = URL.createObjectURL(blob);
+      console.log("ResumeCard image URL:", url);
       setResumeURL(url);
     };
 
@@ -28,13 +30,17 @@ const ResumeCard = ({
       to={`/resume/${id}`}
       className="resume-card animate-in fade-in duration-1000"
     >
-      <div className="resume-card-header">
-        <div className="flex flex-col gap-2">
+      <div className="resume-card-header flex justify-between items-start gap-4">
+        <div className="flex flex-col gap-2 flex-1 min-w-0">
           {companyName && (
-            <h2 className="!text-black font-bold break-words">{companyName}</h2>
+            <h2 className="!text-black font-bold break-words whitespace-normal overflow-hidden">
+              {companyName}
+            </h2>
           )}
           {jobTitle && (
-            <h3 className="text-lg text-gray-500 break-words">{jobTitle}</h3>
+            <h3 className="text-lg text-gray-500 break-words whitespace-normal overflow-hidden line-clamp-1">
+              {jobTitle}
+            </h3>
           )}
           {!companyName && !jobTitle && (
             <h2 className="!text-black font-bold">Resume</h2>

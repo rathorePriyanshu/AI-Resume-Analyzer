@@ -1,25 +1,18 @@
-import { Divide } from "lucide-react";
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
 import { useUserStore } from "~/lib/puter";
 
 const wipe = () => {
   const { auth, fs, kv, isLoading, error } = useUserStore();
   const [Files, setFiles] = useState<FSItem[]>([]);
-  const navigate = useNavigate();
 
   const loadDirectory = async () => {
-    const files = (await fs.readDir("./")) as FSItem[];
+    const files = (await fs.readDir("kv")) as FSItem[];
     setFiles(files);
   };
 
   useEffect(() => {
     loadDirectory();
   }, []);
-
-  useEffect(() => {
-    if (!isLoading && !auth.isAuthenticated) navigate("/auth?next=/wipe");
-  }, [isLoading]);
 
   const handleDelete = async () => {
     Files.forEach(async (file) => {

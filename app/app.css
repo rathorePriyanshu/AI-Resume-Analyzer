@@ -75,7 +75,7 @@ form {
     @apply flex flex-row items-center gap-2 border border-gray-200 rounded-lg p-2 shadow-sm;
   }
   .auth-button {
-    @apply primary-gradient rounded-full py-4 px-8 cursor-pointer w-[600px] max-md:w-full text-3xl font-semibold text-white;
+    @apply primary-gradient rounded-full py-4 px-8 cursor-pointer w-full max-md:w-full text-3xl font-semibold text-white;
   }
   .main-section {
     @apply flex flex-col items-center gap-8 pt-12 max-sm:mx-2 mx-15 pb-5;
@@ -88,7 +88,7 @@ form {
   }
 
   .resume-card {
-    @apply flex flex-col gap-8 h-[560px] w-[350px] lg:w-[430px] xl:w-[490px] bg-white rounded-2xl p-4;
+    @apply flex flex-col gap-8 min-h-[560px] w-[350px] lg:w-[370px] xl:w-[390px] bg-white rounded-2xl p-4;
   }
 
   .resume-card-header {
@@ -100,7 +100,7 @@ form {
   }
 
   .navbar {
-    @apply flex flex-row justify-between items-center bg-white rounded-full p-4 w-full px-10 max-w-[1200px] mx-auto;
+    @apply flex flex-col sm:flex-row justify-between  items-center bg-white sm:rounded-full gap-2 py-2 sm:py-4 w-full px-2 sm:px-10 max-w-[1200px] mx-auto;
   }
 
   .score-badge {
