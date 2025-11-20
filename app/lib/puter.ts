@@ -75,7 +75,7 @@ interface UserStore {
     read: (path: string) => Promise<Blob | undefined>;
     upload: (file: File[] | Blob[]) => Promise<any | undefined>;
     delete: (path: string) => Promise<void>;
-    readDir: (path: string) => Promise<any[] | undefined>;
+    readDir: () => Promise<any[] | undefined>;
   };
   ai: {
     // chat: (
@@ -279,13 +279,17 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
   };
 
   const write = async (path: string, data: string | File | Blob) => {
+    const user = get().auth.user;
+    const folder = user ? `${user.id}/` : "public/";
+    const filename = path.split("/").pop() ?? "file.txt";
+    const fullPath = folder + filename;
+
     let file: File;
 
     if (data instanceof Blob && !(data instanceof File)) {
-      const filename = path.split("/").pop() ?? "file.txt";
       file = new File([data], filename);
     } else if (typeof data === "string") {
-      file = new File([data], path.split("/").pop() ?? "file.txt", {
+      file = new File([data], filename, {
         type: "text/plain",
       });
     } else {
@@ -294,56 +298,73 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
 
     const { error } = await supabase.storage
       .from(BUCKET)
-      .upload(path, file, { upsert: true });
+      .upload(fullPath, file, { upsert: true });
     if (error) throw error;
 
     return file;
   };
 
-  const readDir = async (path: string) => {
-    const { data, error } = await supabase.storage.from(BUCKET).list(path);
+  const readDir = async () => {
+    const user = get().auth.user;
+    const folder = user ? `${user.id}/` : "public/";
+
+    const { data, error } = await supabase.storage.from(BUCKET).list(folder);
+
     if (error) throw error;
 
     return data;
   };
 
   const readFile = async (path: string) => {
-    const { data, error } = await supabase.storage.from(BUCKET).download(path);
+    const user = get().auth.user;
+    const folder = user ? `${user.id}/` : "public/";
+    const fullPath = folder + path;
+
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .download(fullPath);
+
     if (error) {
       throw error;
     }
     if (!data) {
-      throw new Error(`File not found in storage: ${path}`);
+      throw new Error(`File not found in storage: ${fullPath}`);
     }
     return data;
   };
 
   const upload = async (files: File[] | Blob[]): Promise<UploadedFile[]> => {
+    const user = get().auth.user;
+    const folder = user ? `${user.id}/` : "public/";
+
     const results = await Promise.all(
-      files.map(async (f, i) => {
-        let file: File;
-        if (f instanceof Blob && !(f instanceof File)) {
-          file = new File([f], `files-${i}`);
-        } else {
-          file = f as File;
-        }
+      files.map(async (f) => {
+        const file =
+          f instanceof Blob && !(f instanceof File)
+            ? new File([f], "upload")
+            : (f as File);
+
+        const fullPath = folder + file.name;
 
         const { data, error } = await supabase.storage
           .from(BUCKET)
-          .upload(file.name, file, { upsert: true });
+          .upload(fullPath, file, { upsert: true });
 
         if (error) throw error;
 
-        // Map Supabase return to Key
-        return { Key: data?.path || data?.fullPath || `files-${i}`, ...data };
+        return { Key: fullPath, ...data };
       })
     );
 
     return results;
   };
 
-  const deleteFile = async (path: string) => {
-    const { error } = await supabase.storage.from(BUCKET).remove([path]);
+  const deleteFile = async (filename: string) => {
+    const user = get().auth.user;
+    const folder = user ? `${user.id}/` : "public/";
+    const fullPath = folder + filename;
+
+    const { error } = await supabase.storage.from(BUCKET).remove([fullPath]);
     if (error) throw error;
   };
 
@@ -427,9 +448,12 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
 
   const getKV = async (key: string) => {
     try {
+      const user = get().auth.user;
+      const fullPath = user ? `kv/${key}.txt` : `public/${key}.txt`;
+
       const { data, error } = await supabase.storage
         .from(KV_BUCKET)
-        .download(`kv/${key}.txt`);
+        .download(fullPath);
       if (error) {
         if (error.message.includes("Not Found")) return null;
         throw error;
@@ -448,10 +472,16 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
   const setKV = async (key: string, value: string) => {
     try {
       const file = new File([value], `${key}.txt`, { type: "text/plain" });
+
+      const user = get().auth.user;
+      const fullPath = user ? `kv/${key}.txt` : `public/${key}.txt`;
+
       const { error } = await supabase.storage
         .from(KV_BUCKET)
-        .upload(`kv/${key}.txt`, file, { upsert: true });
+        .upload(fullPath, file, { upsert: true });
+
       if (error) throw error;
+
       return true;
     } catch (err) {
       console.error("setKV error:", err);
@@ -538,7 +568,7 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
     fs: {
       write: (path: string, data: string | File | Blob) => write(path, data),
       read: (path: string) => readFile(path),
-      readDir: (path: string) => readDir(path),
+      readDir: () => readDir(),
       upload: (files: File[] | Blob[]) => upload(files),
       delete: (path: string) => deleteFile(path),
     },

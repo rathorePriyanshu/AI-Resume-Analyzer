@@ -37,8 +37,6 @@ const resume = () => {
 
       // Feedback
       setFeedback(resumeData.feedback);
-
-      console.log({ resumeURL, imageURL, feedback });
     };
 
     loadresume();

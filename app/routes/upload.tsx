@@ -67,8 +67,8 @@ const Upload = () => {
       const uuid = generateUUID();
       const resumeData = {
         id: uuid,
-        resumePath: pdfPath,
-        imagePaths,
+        resumePath: pdfPath.split("/").pop(),
+        imagePaths: imagePaths.map((p) => p.split("/").pop()),
         companyName,
         jobTitle,
         jobDescription,

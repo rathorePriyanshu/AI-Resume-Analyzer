@@ -18,7 +18,6 @@ const ResumeCard = ({
       if (!blob) return;
 
       const url = URL.createObjectURL(blob);
-      console.log("ResumeCard image URL:", url);
       setResumeURL(url);
     };
 
