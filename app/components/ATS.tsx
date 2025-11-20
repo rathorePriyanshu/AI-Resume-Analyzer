@@ -22,10 +22,10 @@ const ATS = ({
         <img
           src={
             score > 69
-              ? "/public/icons/ats-good.svg"
+              ? "/icons/ats-good.svg"
               : score > 49
-                ? "/public/icons/ats-warning.svg"
-                : "/public/icons/ats-warning.svg"
+                ? "/icons/ats-warning.svg"
+                : "/icons/ats-warning.svg"
           }
           alt="ATS"
           className="w-10 h-10"
@@ -45,8 +45,8 @@ const ATS = ({
             <img
               src={
                 suggestions.type === "good"
-                  ? "/public/icons/check.svg"
-                  : "/public/icons/warning.svg"
+                  ? "/icons/check.svg"
+                  : "/icons/warning.svg"
               }
               alt="ATS"
               className="w-4 h-4"

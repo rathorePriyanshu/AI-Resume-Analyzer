@@ -12,9 +12,7 @@ const DetailsContent = ({
           <div className="flex flex-row gap-2 items-center" key={index}>
             <img
               src={
-                tip.type === "good"
-                  ? "/public/icons/check.svg"
-                  : "/public/icons/warning.svg"
+                tip.type === "good" ? "/icons/check.svg" : "/icons/warning.svg"
               }
               alt="score"
               className="size-5"
@@ -38,8 +36,8 @@ const DetailsContent = ({
               <img
                 src={
                   tip.type === "good"
-                    ? "/public/icons/check.svg"
-                    : "/public/icons/warning.svg"
+                    ? "/icons/check.svg"
+                    : "/icons/warning.svg"
                 }
                 alt="score"
                 className="size-5"

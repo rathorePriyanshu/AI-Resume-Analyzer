@@ -1,4 +1,3 @@
-import React from "react";
 import DetailsBadge from "./DetailsBadge";
 
 const DetailsHeader = ({

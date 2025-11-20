@@ -6,7 +6,7 @@ const wipe = () => {
   const [Files, setFiles] = useState<FSItem[]>([]);
 
   const loadDirectory = async () => {
-    const files = (await fs.readDir("kv")) as FSItem[];
+    const files = (await fs.readDir()) as FSItem[];
     setFiles(files);
   };
 

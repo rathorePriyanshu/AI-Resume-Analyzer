@@ -13,9 +13,7 @@ const DetailsBadge = ({ score }: { score: number }) => {
       )}
     >
       <img
-        src={
-          score > 69 ? "/public/icons/check.svg" : "/public/icons/warning.svg"
-        }
+        src={score > 69 ? "/icons/check.svg" : "/icons/warning.svg"}
         alt="score"
         className="size-4"
       />

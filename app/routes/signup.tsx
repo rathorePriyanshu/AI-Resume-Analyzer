@@ -26,7 +26,7 @@ const signup = () => {
   };
 
   return (
-    <div className="bg-[url('./images/bg-main.svg')] bg-cover min-h-screen">
+    <div className="bg-[url('/images/bg-main.svg')] bg-cover min-h-screen">
       <nav className="resume-nav">
         <Link to="/" className="back-button">
           <img src="/icons/back.svg" alt="logo" className="w-2.5 h-2.5" />
