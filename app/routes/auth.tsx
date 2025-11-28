@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
-import { useUserStore } from "~/lib/puter";
+import { useUserStore } from "~/lib/State";
 import { supabase } from "~/lib/supabaseClient";
 
 export const meta = () => [

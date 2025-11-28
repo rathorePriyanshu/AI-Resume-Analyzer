@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import { CgProfile } from "react-icons/cg";
 import { useState } from "react";
-import { useUserStore } from "~/lib/puter";
+import { useUserStore } from "~/lib/State";
 
 const NavBar = () => {
   const navigate = useNavigate();

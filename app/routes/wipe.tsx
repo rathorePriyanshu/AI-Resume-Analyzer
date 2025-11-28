@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useUserStore } from "~/lib/puter";
+import { useUserStore } from "~/lib/State";
 
 const wipe = () => {
   const { auth, fs, kv, isLoading, error } = useUserStore();

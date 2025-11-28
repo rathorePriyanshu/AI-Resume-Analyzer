@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router";
-import { useUserStore } from "./puter";
+import { useUserStore } from "./State";
 import { useEffect } from "react";
 import { supabase } from "./supabaseClient";
 

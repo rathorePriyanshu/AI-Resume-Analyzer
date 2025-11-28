@@ -3,7 +3,7 @@ import type { Route } from "./+types/home";
 import ResumeCard from "~/components/ResumeCard";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { useUserStore } from "~/lib/puter";
+import { useUserStore } from "~/lib/State";
 
 export function meta({}: Route.MetaArgs) {
   return [

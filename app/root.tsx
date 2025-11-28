@@ -9,7 +9,7 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { useUserStore } from "./lib/puter";
+import { useUserStore } from "./lib/State";
 import { useEffect } from "react";
 
 export const links: Route.LinksFunction = () => [
