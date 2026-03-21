@@ -70,7 +70,7 @@ interface UserStore {
   fs: {
     write: (
       path: string,
-      data: string | File | Blob
+      data: string | File | Blob,
     ) => Promise<File | undefined>;
     read: (path: string) => Promise<Blob | undefined>;
     upload: (file: File[] | Blob[]) => Promise<any | undefined>;
@@ -86,11 +86,11 @@ interface UserStore {
     // ) => Promise<AIResponse | undefined>;
     feedback: (
       path: string,
-      message: string
+      message: string,
     ) => Promise<AIResponse | undefined>;
     img2txt: (
       image: string | File | Blob,
-      testMode?: boolean
+      testMode?: boolean,
     ) => Promise<string | undefined>;
   };
   kv: {
@@ -99,7 +99,7 @@ interface UserStore {
     delete: (key: string) => Promise<boolean | undefined>;
     list: (
       pattern: string,
-      returnValues?: boolean
+      returnValues?: boolean,
     ) => Promise<string[] | KVItem[] | undefined>;
     flush: () => Promise<boolean | undefined>;
   };
@@ -353,7 +353,7 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
         if (error) throw error;
 
         return { Key: fullPath, ...data };
-      })
+      }),
     );
 
     return results;
@@ -449,7 +449,12 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
   const getKV = async (key: string) => {
     try {
       const user = get().auth.user;
-      const fullPath = user ? `kv/${key}.txt` : `public/${key}.txt`;
+      const fullPath = user
+        ? `kv/resume:${key}.txt`
+        : `public/resume:${key}.txt`;
+
+      console.log("USER:", user);
+      console.log("PATH:", fullPath);
 
       const { data, error } = await supabase.storage
         .from(KV_BUCKET)
@@ -474,7 +479,9 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
       const file = new File([value], `${key}.txt`, { type: "text/plain" });
 
       const user = get().auth.user;
-      const fullPath = user ? `kv/${key}.txt` : `public/${key}.txt`;
+      const fullPath = user
+        ? `kv/resume:${key}.txt`
+        : `public/resume:${key}.txt`;
 
       const { error } = await supabase.storage
         .from(KV_BUCKET)
@@ -493,7 +500,7 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
     try {
       const { error } = await supabase.storage
         .from(KV_BUCKET)
-        .remove([`kv/${key}.txt`]);
+        .remove([`kv/resume:${key}.txt`]);
       if (error) throw error;
       return true;
     } catch (err) {
@@ -509,7 +516,9 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
         .list("kv/");
       if (error) throw error;
 
-      let keys = data.map((f) => f.name.replace(".txt", ""));
+      let keys = data.map((f) =>
+        f.name.replace("resume:", "").replace(".txt", ""),
+      );
 
       if (pattern) {
         const regex = new RegExp(pattern);

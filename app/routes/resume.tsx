@@ -13,8 +13,10 @@ const resume = () => {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   useEffect(() => {
+    if (!id) return;
+
     const loadresume = async () => {
-      const resumeText = await kv.get(`resume:${id}`);
+      const resumeText = await kv.get(id);
       if (!resumeText) return;
 
       const resumeData = JSON.parse(resumeText);
@@ -25,7 +27,9 @@ const resume = () => {
       if (!resumeBlob) return;
 
       setResumeURL(
-        URL.createObjectURL(new Blob([resumeBlob], { type: "application/pdf" }))
+        URL.createObjectURL(
+          new Blob([resumeBlob], { type: "application/pdf" }),
+        ),
       );
 
       // First image

@@ -49,7 +49,7 @@ const Upload = () => {
       type UploadedFile = { Key: string; [key: string]: any };
       const uploadedImages: UploadedFile[] = await fs.upload(images);
       const imagePaths: string[] = uploadedImages.map(
-        (img: UploadedFile) => img.Key
+        (img: UploadedFile) => img.Key,
       );
       if (imagePaths.length === 0)
         return setStatusText("Error: Failed to upload images");
@@ -60,7 +60,7 @@ const Upload = () => {
       const extractedText = await ai.img2txt(images[0]);
       if (!extractedText || extractedText.trim() === "")
         return setStatusText(
-          "Error: OCR failed. The PDF seems blank or unreadable."
+          "Error: OCR failed. The PDF seems blank or unreadable.",
         );
 
       //  Save initial data in KV
@@ -75,14 +75,14 @@ const Upload = () => {
         extractedText,
         feedback: "",
       };
-      await kv.set(`resume:${uuid}`, JSON.stringify(resumeData));
+      await kv.set(uuid, JSON.stringify(resumeData));
 
       setStatusText("Analyzing resume with AI...");
 
       //  Get AI feedback
       const feedback = await ai.feedback(
         extractedText,
-        prepareInstructions({ jobTitle, jobDescription, AIResponseFormat })
+        prepareInstructions({ jobTitle, jobDescription, AIResponseFormat }),
       );
       if (!feedback) return setStatusText("Error: Failed to analyze resume");
 
@@ -90,7 +90,7 @@ const Upload = () => {
       let feedbackText = "";
       if (Array.isArray(feedback.message.content)) {
         const textItem = feedback.message.content.find(
-          (c) => c.type === "text"
+          (c) => c.type === "text",
         );
         feedbackText = textItem?.text ?? "";
       } else if (typeof feedback.message.content === "string") {
@@ -106,7 +106,7 @@ const Upload = () => {
 
       //  Save feedback in KV
       resumeData.feedback = parsedFeedback;
-      await kv.set(`resume:${uuid}`, JSON.stringify(resumeData));
+      await kv.set(uuid, JSON.stringify(resumeData));
 
       setStatusText("Analysis complete, redirecting...");
       console.log(resumeData);

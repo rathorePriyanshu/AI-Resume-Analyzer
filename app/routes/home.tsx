@@ -27,7 +27,7 @@ export default function Home() {
     const loadResume = async () => {
       setResumeLoading(true);
 
-      const items = (await kv.list("resume:*", true)) as string[];
+      const items = (await kv.list("", true)) as string[];
       const parsed = items.map((r) => JSON.parse(r) as Resume);
 
       setResume(parsed || []);
