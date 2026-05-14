@@ -414,6 +414,7 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
         via_ai_chat_service: true,
       };
 
+      console.log("AI Feedback Response:", aiResponse);
       return aiResponse;
     } catch (err) {
       console.error("AI Feedback Error", err);
