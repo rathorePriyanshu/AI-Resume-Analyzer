@@ -14,7 +14,7 @@ const FileUploader = ({ onFileSelect, file }: FileUploaderProps) => {
 
       onFileSelect?.(file);
     },
-    [onFileSelect]
+    [onFileSelect],
   );
 
   const maxFileSize = 20 * 1024 * 1024; // 20MB in bytes

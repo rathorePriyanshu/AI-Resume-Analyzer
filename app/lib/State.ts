@@ -5,10 +5,10 @@ import { OpenAI } from "openai";
 
 const BUCKET = "Uploads";
 const KV_BUCKET = BUCKET;
-const hfClient = new OpenAI({
-  baseURL: "https://router.huggingface.co/v1",
-  apiKey: import.meta.env.VITE_HF_TOKEN,
-  dangerouslyAllowBrowser: true,
+
+const groqClient = new OpenAI({
+  apiKey: process.env.VITE_GROQ_TOKEN,
+  baseURL: "https://api.groq.com/openai/v1",
 });
 type UploadedFile = { Key: string; [key: string]: any };
 
@@ -382,8 +382,8 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
 
   const feedback = async (extractedText: string, message: string) => {
     try {
-      const chatCompletion = await hfClient.chat.completions.create({
-        model: "deepseek-ai/DeepSeek-V3.1-Terminus:novita",
+      const chatCompletion = await groqClient.chat.completions.create({
+        model: "openai/gpt-oss-20b",
         messages: [
           {
             role: "user",
@@ -406,7 +406,7 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
         usage: [
           {
             type: "prompt",
-            model: "Qwen3-Next-80B-A3B-Instruct",
+            model: "openai/gpt-oss-20b",
             amount: 0,
             cost: 0,
           },
