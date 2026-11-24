@@ -114,6 +114,11 @@ form {
   .uplader-drag-area {
     @apply relative p-8 text-center transition-all duration-700 cursor-pointer bg-white rounded-2xl min-h-[208px];
   }
+  .uploader-dropzone {
+    @apply cursor-pointer select-none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
   .uploader-selected-file {
     @apply flex items-center justify-between p-3 bg-gray-50 rounded-2xl;
   }

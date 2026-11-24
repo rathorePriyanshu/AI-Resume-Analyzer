@@ -27,51 +27,70 @@ const FileUploader = ({ onFileSelect, file }: FileUploaderProps) => {
   });
 
   return (
-    <div className="w-full gradient-border">
-      <div {...getRootProps()}>
-        <input {...getInputProps()} />
+    <div
+      {...getRootProps({
+        className: "w-full gradient-border uploader-dropzone",
+      })}
+    >
+      <input {...getInputProps({ id: "uploader" })} />
 
-        <div className="space-y-4 cursor-pointer">
-          {file ? (
-            <div
-              className="uploader-selected-file"
-              onClick={(e) => e.stopPropagation()}
+      <div className="space-y-4">
+        {file ? (
+          <div
+            className="uploader-selected-file"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src="/images/pdf.png"
+              alt="pdf"
+              className="size-10 select-none"
+              draggable={false}
+            />
+            <div className="flex items-center space-x-3">
+              <div>
+                <p className="text-sm font-medium text-gray-700 truncate max-w-xs">
+                  {file.name}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {formatSize(file.size)}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="p-2 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onFileSelect?.(null);
+              }}
             >
-              <img src="/images/pdf.png" alt="pdf" className="size-10" />
-              <div className="flex items-center space-x-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-700 truncate max-w-xs">
-                    {file.name}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {formatSize(file.size)}
-                  </p>
-                </div>
-              </div>
-              <button
-                className="p-2 cursor-pointer"
-                onClick={() => {
-                  onFileSelect?.(null);
-                }}
-              >
-                <img src="/icons/cross.svg" alt="remove" className="w-4 h-4" />
-              </button>
+              <img
+                src="/icons/cross.svg"
+                alt="remove"
+                className="w-4 h-4 select-none"
+                draggable={false}
+              />
+            </button>
+          </div>
+        ) : (
+          <div className="select-none pointer-events-none">
+            <div className="mx-auto w-16 h-16 flex items-center justify-center mb-2">
+              <img
+                src="/icons/info.svg"
+                alt="upload"
+                className="size-20 select-none"
+                draggable={false}
+              />
             </div>
-          ) : (
-            <div>
-              <div className="mx-auto w-16 h-16 flex items-center justify-center mb-2">
-                <img src="/icons/info.svg" alt="upload" className="size-20" />
-              </div>
-              <p className="text-lg text-gray-500">
-                <span className="font-semibold">Click to upload</span> or drag
-                and drop
-              </p>
-              <p className="text-lg text-gray-500">
-                PDF (max {formatSize(maxFileSize)})
-              </p>
-            </div>
-          )}
-        </div>
+            <p className="text-lg text-gray-500 select-none">
+              <span className="font-semibold">Click to upload</span> or drag
+              and drop
+            </p>
+            <p className="text-lg text-gray-500 select-none">
+              PDF (max {formatSize(maxFileSize)})
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

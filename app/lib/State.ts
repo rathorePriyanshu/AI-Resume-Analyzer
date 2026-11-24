@@ -6,10 +6,12 @@ import { OpenAI } from "openai";
 const BUCKET = "Uploads";
 const KV_BUCKET = BUCKET;
 
-const groqClient = new OpenAI({
-  apiKey: process.env.VITE_GROQ_TOKEN,
-  baseURL: "https://api.groq.com/openai/v1",
-});
+const getGroqClient = () =>
+  new OpenAI({
+    apiKey: import.meta.env.VITE_GROQ_TOKEN,
+    baseURL: "https://api.groq.com/openai/v1",
+    dangerouslyAllowBrowser: true,
+  });
 type UploadedFile = { Key: string; [key: string]: any };
 
 // declare global {
@@ -382,6 +384,7 @@ export const useUserStore = create<UserStore>((set, get): UserStore => {
 
   const feedback = async (extractedText: string, message: string) => {
     try {
+      const groqClient = getGroqClient();
       const chatCompletion = await groqClient.chat.completions.create({
         model: "openai/gpt-oss-20b",
         messages: [
